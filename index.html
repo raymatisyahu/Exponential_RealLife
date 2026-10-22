@@ -1,0 +1,962 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exponent Quest: Hero Battle</title>
+<style>
+:root {
+  --bg:#080e24; --panel:#14234a; --line:#344777;
+  --blue:#246bfe; --cyan:#5ee7ff; --gold:#ffd166;
+  --green:#35d07f; --red:#ff5964;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; color:#f5f8ff; font-family:Arial,sans-serif;
+  background:radial-gradient(ellipse at top,#1d3270,#080e24 75%);
+}
+header {
+  text-align:center; padding:22px 12px;
+  background:linear-gradient(135deg,#182d65,#512078);
+  border-bottom:3px solid var(--cyan);
+}
+header h1 { margin:0; font-size:clamp(25px,4vw,38px); }
+header p { font-size:17px; }
+main { max-width:1000px; margin:22px auto; padding:0 14px; }
+.panel {
+  background:linear-gradient(145deg,#17254c,#101832);
+  border:1px solid var(--line); border-radius:20px;
+  padding:clamp(18px,3.5vw,32px); box-shadow:0 12px 35px #0006;
+}
+.hidden { display:none!important; }
+h2 { font-size:clamp(24px,3vw,31px); }
+label { display:block; font-size:19px; font-weight:bold; margin:17px 0 8px; }
+input[type=text],select {
+  width:100%; padding:14px; border-radius:10px;
+  border:2px solid #546b9d; background:#0d1734;
+  color:white; font-size:19px;
+}
+button {
+  padding:14px 19px; border:0; border-radius:11px;
+  background:var(--blue); color:white; font-size:18px;
+  font-weight:bold; cursor:pointer;
+}
+button:disabled { opacity:.5; cursor:not-allowed; }
+button:hover:not(:disabled) { filter:brightness(1.15); }
+.start {
+  width:100%; margin-top:24px;
+  background:linear-gradient(90deg,#246bfe,#9254de);
+}
+.topline { display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.pill { background:#26365f; padding:9px 13px; border-radius:25px; font-weight:bold; }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
+.stat { text-align:center; background:#0c1530; border:1px solid var(--line); padding:13px 5px; border-radius:12px; }
+.stat strong { display:block; font-size:23px; color:var(--gold); margin-top:6px; }
+
+/* HUMAN HERO SELECTION */
+.hero-options { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:12px; }
+.hero-option { display:block; position:relative; cursor:pointer; margin:0; }
+.hero-option input { position:absolute; opacity:0; width:1px; height:1px; }
+.hero-card {
+  height:100%; min-height:245px; text-align:center;
+  background:#0c1530; border:3px solid #344777;
+  border-radius:16px; padding:12px 8px; transition:.2s;
+}
+.hero-option input:checked + .hero-card {
+  border-color:var(--gold); background:linear-gradient(145deg,#263e76,#352354);
+  box-shadow:0 0 18px #ffd16666; transform:translateY(-3px);
+}
+.hero-option input:focus-visible + .hero-card { outline:3px solid white; }
+.person-art { width:100%; max-width:150px; height:150px; display:block; margin:0 auto 8px; }
+.hero-card strong { display:block; font-size:20px; }
+.hero-card small { display:block; color:#c4d2f7; margin-top:7px; font-size:14px; }
+.selection-note { color:var(--gold); text-align:center; font-size:17px; }
+
+/* GAME */
+.progress { height:12px; background:#303c60; border-radius:20px; overflow:hidden; margin:18px 0; }
+.bar { height:100%; width:0; background:linear-gradient(90deg,#37e7c3,#5ee7ff); transition:width .3s; }
+.battlefield {
+  position:relative; display:grid; grid-template-columns:1fr 1fr;
+  gap:14px; margin:20px 0; padding:10px 0; isolation:isolate; overflow:hidden;
+}
+.fighter {
+  position:relative; z-index:1; background:#0c1530;
+  border:2px solid #344777; border-radius:16px;
+  padding:12px 8px; text-align:center; min-width:0;
+}
+.hero { border-color:#4387ff; }
+.enemy { border-color:#ff5964; }
+.battle-art { width:100%; max-width:180px; height:175px; display:block; margin:0 auto 5px; }
+.fighter-name { font-size:19px; font-weight:bold; }
+.hp { height:14px; background:#4a263b; border-radius:20px; overflow:hidden; margin-top:9px; }
+.hp div { height:100%; width:100%; background:var(--green); transition:width .45s; }
+.enemy .hp div { background:var(--red); }
+.projectile {
+  position:absolute; z-index:10; top:38%; font-size:42px;
+  pointer-events:none; opacity:0; filter:drop-shadow(0 0 12px #ff6a00);
+}
+.projectile.right { left:8%; animation:fireRight .85s ease-in forwards; }
+.projectile.left { left:78%; animation:fireLeft .85s ease-in forwards; }
+@keyframes fireRight {
+  0%{left:8%;opacity:0;transform:scale(.3) rotate(0)}
+  10%{opacity:1} 45%{transform:scale(1.2) rotate(220deg)}
+  100%{left:79%;opacity:1;transform:scale(.8) rotate(500deg)}
+}
+@keyframes fireLeft {
+  0%{left:78%;opacity:0;transform:scale(.3) rotate(0)}
+  10%{opacity:1} 45%{transform:scale(1.2) rotate(-220deg)}
+  100%{left:8%;opacity:1;transform:scale(.8) rotate(-500deg)}
+}
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-9px) rotate(-4deg)}
+  45%{transform:translateX(10px) rotate(4deg)}
+  70%{transform:translateX(-6px)}
+}
+@keyframes flash {
+  0%,100%{filter:brightness(1)}
+  45%{filter:brightness(2.4) drop-shadow(0 0 15px white)}
+}
+@keyframes cast {
+  0%,100%{transform:scale(1)}
+  35%{transform:scale(1.07) rotate(-3deg)}
+  65%{transform:scale(.96) rotate(3deg)}
+}
+@keyframes boom {
+  0%{transform:scale(.2);opacity:0}
+  35%{transform:scale(1.5);opacity:1}
+  100%{transform:scale(2);opacity:0}
+}
+.fighter.attacking .battle-art { animation:cast .5s ease; }
+.fighter.damaged .battle-art { animation:shake .5s ease,flash .5s ease; }
+.explosion { position:absolute; z-index:12; top:25%; left:75%; font-size:44px; animation:boom .6s ease forwards; pointer-events:none; }
+.explosion.left-side { left:8%; }
+#battleMessage {
+  background:#0c1530; border:1px solid #344777; border-radius:12px;
+  padding:13px; text-align:center; min-height:48px;
+  font-size:18px; font-weight:bold; line-height:1.5;
+}
+.category { color:var(--cyan); font-size:15px; font-weight:bold; letter-spacing:1px; margin-top:20px; }
+.question { font-size:clamp(23px,3.5vw,32px); line-height:1.55; margin:17px 0 24px; overflow-wrap:anywhere; }
+sup { font-size:.65em; vertical-align:super; line-height:0; }
+.choices { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+.choice {
+  text-align:left; min-height:67px; background:#202e55;
+  border:2px solid #435782; color:white;
+  font-size:clamp(18px,2.5vw,22px); line-height:1.5; overflow-wrap:anywhere;
+}
+.choice.selected-correct { background:#14583e; border-color:var(--green); }
+.choice.selected-wrong { background:#642a40; border-color:var(--red); }
+.feedback { min-height:32px; font-size:19px; font-weight:bold; margin-top:17px; line-height:1.5; }
+.actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+.secondary { background:#344363; }
+.score { font-size:clamp(35px,6vw,55px); font-weight:900; color:var(--gold); }
+.result-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:22px 0; }
+.result-card { background:#0c1530; border:1px solid var(--line); border-radius:13px; padding:17px; overflow-wrap:anywhere; }
+.result-label { color:#bdcafa; font-size:15px; margin-bottom:8px; }
+.result-value { font-size:21px; font-weight:bold; line-height:1.4; }
+.result-hero { text-align:center; background:#0c1530; border:1px solid var(--line); border-radius:14px; padding:15px; }
+.result-hero .person-art { height:160px; }
+.review { border-top:1px solid var(--line); padding:14px 0; font-size:17px; line-height:1.6; overflow-wrap:anywhere; }
+.good { color:#65e9a2; }
+.bad { color:#ff8790; }
+.game-over-banner {
+  padding:20px; text-align:center; border-radius:14px;
+  background:#5a172c; border:2px solid #ff5964;
+  margin:18px 0; font-size:clamp(27px,5vw,42px);
+  font-weight:900; color:#fff;
+}
+footer { text-align:center; color:#b6c5eb; padding:20px; }
+
+@media(max-width:650px) {
+  .hero-options { grid-template-columns:1fr; }
+  .hero-card { min-height:210px; }
+  .person-art { height:145px; }
+  .choices { grid-template-columns:1fr; }
+  .battlefield { gap:6px; }
+  .fighter { padding:8px 4px; }
+  .battle-art { height:135px; }
+  .result-grid { grid-template-columns:1fr; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .projectile { animation-duration:.25s!important; }
+}
+@media print {
+  body { background:white; color:black; }
+  header { background:white; color:black; }
+  .panel { box-shadow:none; background:white; color:black; }
+  .actions,#dashboard,#quiz,footer { display:none!important; }
+  .result-card,.result-hero { background:white; color:black; border:1px solid #777; }
+  .result-label { color:#333; }
+  .review { break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔥 EXPONENT QUEST: HERO BATTLE</h1>
+  <p>Choose your hero. Master exponents. Defeat the Shadow Monster!</p>
+</header>
+
+<main>
+<section id="dashboard" class="panel">
+  <div class="topline">
+    <span class="pill">GRADE 6 MATH ADVENTURE</span>
+    <span class="pill">15 Challenges</span>
+  </div>
+  <h2>⚔️ Prepare for Battle!</h2>
+  <p style="font-size:19px;line-height:1.6">
+    Enter your information and choose your human hero.
+    Five incorrect answers will end the game.
+  </p>
+  <div class="stats">
+    <div class="stat">Question Bank<strong>100</strong></div>
+    <div class="stat">Questions<strong>15</strong></div>
+    <div class="stat">Wrong Limit<strong>5</strong></div>
+  </div>
+
+  <form id="studentForm">
+    <label for="studentName">Student's Complete Name</label>
+    <input type="text" id="studentName" required placeholder="Enter your complete name">
+
+    <label for="studentSection">Select Your Section</label>
+    <select id="studentSection" required>
+      <option value="">-- Select Section --</option>
+      <option>Grade 6 - Corrales</option>
+      <option>Grade 6 - Dianga</option>
+      <option>Grade 6 - Narvaez</option>
+    </select>
+
+    <label>Choose Your Hero</label>
+    <div class="hero-options">
+
+      <label class="hero-option">
+        <input type="radio" name="heroChoice" value="gladiator" required>
+        <div class="hero-card">
+          <svg class="person-art" viewBox="0 0 140 160" role="img" aria-label="Human boy gladiator">
+            <defs>
+              <linearGradient id="gArmor" x2="1" y2="1">
+                <stop stop-color="#c9d8ef"/><stop offset="1" stop-color="#566c92"/>
+              </linearGradient>
+            </defs>
+            <!-- legs and boots -->
+            <path d="M48 105 L46 139 L37 151 L59 151 L66 111Z" fill="#34415f" stroke="#111a30" stroke-width="3"/>
+            <path d="M80 105 L87 139 L82 151 L104 151 L101 139 L96 104Z" fill="#34415f" stroke="#111a30" stroke-width="3"/>
+            <!-- body -->
+            <path d="M45 56 L31 70 L39 108 Q69 120 101 108 L108 70 L92 56Z" fill="url(#gArmor)" stroke="#18233b" stroke-width="3"/>
+            <path d="M46 61 L70 77 L92 61 L86 98 L55 98Z" fill="#8e9fb9" stroke="#293a5c" stroke-width="3"/>
+            <path d="M53 76 L86 76 M53 86 L86 86" stroke="#e9f1ff" stroke-width="3"/>
+            <!-- arms -->
+            <path d="M38 67 L23 91 L33 100 L49 78" fill="#b97753" stroke="#593b36" stroke-width="3"/>
+            <path d="M100 67 L115 84 L108 96 L91 78" fill="#b97753" stroke="#593b36" stroke-width="3"/>
+            <!-- shield -->
+            <path d="M13 77 L31 72 L40 83 L37 113 L25 124 L13 113Z" fill="#a34e39" stroke="#f4c36c" stroke-width="4"/>
+            <path d="M26 80 L26 115 M16 97 L36 97" stroke="#f4c36c" stroke-width="3"/>
+            <!-- neck and face -->
+            <rect x="60" y="44" width="20" height="19" rx="5" fill="#b97753"/>
+            <ellipse cx="70" cy="34" rx="24" ry="28" fill="#c98b66" stroke="#593b36" stroke-width="2"/>
+            <!-- hair -->
+            <path d="M46 35 Q40 8 62 7 Q83 0 94 18 L92 34 L83 23 L75 19 L62 24 L50 22Z" fill="#3c2a24"/>
+            <path d="M53 37 L62 37 M77 37 L86 37" stroke="#382522" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="58" cy="35" rx="3" ry="4" fill="#18233b"/>
+            <ellipse cx="81" cy="35" rx="3" ry="4" fill="#18233b"/>
+            <path d="M61 48 Q70 55 80 47" fill="none" stroke="#6f352e" stroke-width="3" stroke-linecap="round"/>
+            <!-- helmet -->
+            <path d="M43 25 Q44 3 70 4 Q95 3 97 25 L88 29 L51 29Z" fill="#91a6c8" stroke="#253454" stroke-width="3"/>
+            <path d="M70 6 L70 27" stroke="#f7d47d" stroke-width="4"/>
+            <!-- sword -->
+            <path d="M111 65 L129 22" stroke="#dce9ff" stroke-width="5" stroke-linecap="round"/>
+            <path d="M107 67 L118 71" stroke="#d2a35b" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <strong>Gladiator</strong>
+          <small>Boy Hero · Brave Warrior</small>
+        </div>
+      </label>
+
+      <label class="hero-option">
+        <input type="radio" name="heroChoice" value="wizard">
+        <div class="hero-card">
+          <svg class="person-art" viewBox="0 0 140 160" role="img" aria-label="Human boy wizard">
+            <!-- robe -->
+            <path d="M48 56 L32 73 L20 133 L70 145 L120 133 L108 73 L92 56Z" fill="#5944b7" stroke="#211b56" stroke-width="3"/>
+            <path d="M58 61 L70 83 L82 61 L92 137 L48 137Z" fill="#f3c65c" stroke="#211b56" stroke-width="3"/>
+            <!-- sleeves -->
+            <path d="M38 70 L21 93 L35 104 L52 81" fill="#6b5ce0" stroke="#211b56" stroke-width="3"/>
+            <path d="M102 70 L117 92 L105 104 L89 81" fill="#6b5ce0" stroke="#211b56" stroke-width="3"/>
+            <!-- hands -->
+            <circle cx="29" cy="102" r="8" fill="#c98b66"/>
+            <circle cx="111" cy="102" r="8" fill="#c98b66"/>
+            <!-- neck -->
+            <rect x="60" y="44" width="20" height="18" rx="5" fill="#c98b66"/>
+            <!-- face -->
+            <ellipse cx="70" cy="34" rx="23" ry="27" fill="#d5a07a" stroke="#754c3e" stroke-width="2"/>
+            <path d="M47 30 Q43 9 63 8 Q86 2 94 24 L90 33 L81 20 L63 25 L51 22Z" fill="#4b3028"/>
+            <ellipse cx="59" cy="35" rx="3" ry="4" fill="#17203b"/>
+            <ellipse cx="81" cy="35" rx="3" ry="4" fill="#17203b"/>
+            <path d="M61 47 Q70 53 79 47" fill="none" stroke="#784038" stroke-width="3" stroke-linecap="round"/>
+            <!-- wizard hat -->
+            <path d="M43 25 L62 0 L91 25Z" fill="#5140a3" stroke="#211b56" stroke-width="3"/>
+            <path d="M61 7 L70 18 L80 8" fill="none" stroke="#f3d46f" stroke-width="3"/>
+            <ellipse cx="67" cy="25" rx="31" ry="7" fill="#7769dc" stroke="#211b56" stroke-width="3"/>
+            <!-- magic staff -->
+            <path d="M117 143 L113 47" stroke="#a66c3c" stroke-width="7" stroke-linecap="round"/>
+            <path d="M113 35 L120 45 L113 55 L106 45Z" fill="#5ee7ff" stroke="#d6faff" stroke-width="3"/>
+            <circle cx="113" cy="45" r="15" fill="none" stroke="#b7f7ff" stroke-width="2"/>
+            <!-- belt -->
+            <path d="M34 117 Q70 126 106 117" stroke="#e3b34e" stroke-width="7" fill="none"/>
+          </svg>
+          <strong>Wizard</strong>
+          <small>Boy Hero · Master of Magic</small>
+        </div>
+      </label>
+
+      <label class="hero-option">
+        <input type="radio" name="heroChoice" value="archer">
+        <div class="hero-card">
+          <svg class="person-art" viewBox="0 0 140 160" role="img" aria-label="Human girl archer">
+            <!-- legs -->
+            <path d="M52 109 L47 145 L37 152 L60 152 L68 112Z" fill="#40516b" stroke="#17243b" stroke-width="3"/>
+            <path d="M78 110 L84 145 L78 152 L101 152 L97 143 L95 108Z" fill="#40516b" stroke="#17243b" stroke-width="3"/>
+            <!-- body -->
+            <path d="M48 58 L32 72 L40 109 Q70 119 100 109 L108 72 L91 58Z" fill="#268c77" stroke="#154b4a" stroke-width="3"/>
+            <path d="M54 61 L70 82 L86 61 L90 105 L50 105Z" fill="#35b69a" stroke="#154b4a" stroke-width="3"/>
+            <!-- arms -->
+            <path d="M39 69 L24 92 L33 100 L49 79" fill="#d79b79" stroke="#754c3e" stroke-width="3"/>
+            <path d="M101 69 L116 90 L107 99 L91 79" fill="#d79b79" stroke="#754c3e" stroke-width="3"/>
+            <!-- bow -->
+            <path d="M18 50 Q-1 82 18 115" fill="none" stroke="#c88c43" stroke-width="5"/>
+            <path d="M18 50 L18 115" stroke="#f6e4b8" stroke-width="2"/>
+            <!-- neck and face -->
+            <rect x="60" y="44" width="20" height="18" rx="5" fill="#d79b79"/>
+            <ellipse cx="70" cy="34" rx="23" ry="27" fill="#e1ae89" stroke="#754c3e" stroke-width="2"/>
+            <!-- long hair -->
+            <path d="M47 34 Q37 10 61 7 Q86 2 94 24 L96 62 L84 74 L84 38 L78 20 L62 23 L51 21Z" fill="#6a3526" stroke="#48271f" stroke-width="3"/>
+            <path d="M50 31 Q42 44 50 59" fill="none" stroke="#8b4a31" stroke-width="7"/>
+            <ellipse cx="59" cy="35" rx="3" ry="4" fill="#17203b"/>
+            <ellipse cx="81" cy="35" rx="3" ry="4" fill="#17203b"/>
+            <path d="M61 47 Q70 54 79 47" fill="none" stroke="#9a5045" stroke-width="3" stroke-linecap="round"/>
+            <!-- headband -->
+            <path d="M46 24 Q69 13 94 25" fill="none" stroke="#eac45f" stroke-width="5"/>
+            <circle cx="70" cy="20" r="4" fill="#f8e7a3"/>
+            <!-- quiver -->
+            <path d="M96 61 L112 45 L123 91 L108 97Z" fill="#8d572d" stroke="#492d21" stroke-width="3"/>
+            <path d="M105 53 L117 48 M108 61 L120 56 M111 69 L122 64" stroke="#f0d3a0" stroke-width="3"/>
+            <!-- belt -->
+            <path d="M36 111 Q70 120 104 111" stroke="#edc46c" stroke-width="6" fill="none"/>
+          </svg>
+          <strong>Archer</strong>
+          <small>Girl Hero · Expert Archer</small>
+        </div>
+      </label>
+    </div>
+
+    <p class="selection-note">⭐ Choose one human hero to begin your quest.</p>
+    <button class="start" type="submit">🚀 START THE QUEST</button>
+  </form>
+</section>
+
+<section id="quiz" class="panel hidden">
+  <div class="topline">
+    <span id="nameLabel" class="pill"></span>
+    <span id="sectionLabel" class="pill"></span>
+    <span id="countLabel" class="pill"></span>
+  </div>
+
+  <div class="progress"><div id="bar" class="bar"></div></div>
+
+  <div class="stats">
+    <div class="stat">Wrong Answers<strong id="mistakeCount">0 / 5</strong></div>
+    <div class="stat">Hero HP<strong id="heroHPText">5 / 5</strong></div>
+    <div class="stat">Monster HP<strong id="enemyHPText">15 / 15</strong></div>
+  </div>
+
+  <div class="battlefield" id="battlefield">
+    <div class="fighter hero" id="heroFighter">
+      <div id="battleHeroArt"></div>
+      <div class="fighter-name" id="heroTitle">HERO</div>
+      <div id="heroStatus">HP: 5 / 5 · XP: 0</div>
+      <div class="hp"><div id="heroHP"></div></div>
+    </div>
+    <div class="fighter enemy" id="enemyFighter">
+      <svg class="battle-art" viewBox="0 0 160 180" role="img" aria-label="Shadow monster">
+        <defs>
+          <linearGradient id="monsterShade" x2="0" y2="1">
+            <stop stop-color="#b44a85"/><stop offset="1" stop-color="#451a59"/>
+          </linearGradient>
+        </defs>
+        <path d="M32 72 L15 36 L54 53 L72 20 L88 53 L125 34 L117 75
+                 Q146 100 130 138 Q115 171 80 166 Q43 171 28 139 Q14 106 32 72Z"
+              fill="url(#monsterShade)" stroke="#25133d" stroke-width="5"/>
+        <ellipse cx="57" cy="94" rx="14" ry="18" fill="#ffdd68"/>
+        <ellipse cx="104" cy="94" rx="14" ry="18" fill="#ffdd68"/>
+        <ellipse cx="57" cy="97" rx="5" ry="10" fill="#25133d"/>
+        <ellipse cx="104" cy="97" rx="5" ry="10" fill="#25133d"/>
+        <path d="M50 126 Q80 148 111 126 L103 145 L60 145Z" fill="#25133d"/>
+        <path d="M60 128 L67 139 L74 129 L81 140 L89 129 L96 139 L102 128"
+              fill="#fff1db"/>
+        <path d="M29 104 L6 117 L24 129 M130 105 L153 116 L136 132"
+              fill="none" stroke="#7c2c77" stroke-width="12" stroke-linecap="round"/>
+      </svg>
+      <div class="fighter-name">SHADOW MONSTER</div>
+      <div id="enemyStatus">HP: 15 / 15</div>
+      <div class="hp"><div id="enemyHP"></div></div>
+    </div>
+  </div>
+
+  <div id="battleMessage">You have 5 mistakes available. Choose carefully!</div>
+  <div id="category" class="category"></div>
+  <div id="question" class="question"></div>
+  <div id="choices" class="choices"></div>
+  <div id="feedback" class="feedback" aria-live="polite"></div>
+  <div class="actions">
+    <button id="next" disabled>Next Challenge →</button>
+  </div>
+</section>
+
+<section id="results" class="panel hidden">
+  <div id="gameOverBanner" class="game-over-banner hidden">💀 GAME OVER</div>
+  <div class="topline">
+    <span class="pill">FINAL RESULTS DASHBOARD</span>
+    <span id="rank" class="pill"></span>
+  </div>
+  <h2 id="ending">Quest Completed!</h2>
+
+  <div class="result-hero">
+    <div id="resultHeroArt"></div>
+    <strong id="resultHeroName" style="font-size:23px"></strong>
+    <p id="resultHeroDescription"></p>
+  </div>
+
+  <h2>📋 Student Information and Raw Score</h2>
+  <div class="result-grid">
+    <div class="result-card">
+      <div class="result-label">STUDENT'S COMPLETE NAME</div>
+      <div class="result-value" id="resultName"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">SECTION</div>
+      <div class="result-value" id="resultSection"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">RAW SCORE</div>
+      <div class="result-value" id="rawScore"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">PERCENTAGE OF FULL TEST</div>
+      <div class="result-value" id="percentage"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">CORRECT ANSWERS</div>
+      <div class="result-value" id="correctCount"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">INCORRECT ANSWERS</div>
+      <div class="result-value" id="wrongCount"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">QUESTIONS ANSWERED</div>
+      <div class="result-value" id="answeredCount"></div>
+    </div>
+  </div>
+
+  <h2>⚔️ Battle Summary</h2>
+  <p id="message" style="font-size:19px;line-height:1.6"></p>
+
+  <h2>📜 Answer Review</h2>
+  <p id="reviewNote">Review the questions you answered.</p>
+  <div id="review"></div>
+
+  <div class="actions">
+    <button id="retry">🔄 New Student / Play Again</button>
+    <button id="print" class="secondary">🖨️ Print Results</button>
+  </div>
+</section>
+</main>
+
+<footer>EXPONENT QUEST • THINK • CAST • CONQUER</footer>
+
+<script>
+// ============================================
+// HUMAN HERO ARTWORK
+// The same illustrations appear in selection,
+// battle and results dashboards.
+// ============================================
+const heroSVG = {
+  gladiator: `
+  <svg class="person-art" viewBox="0 0 140 160" role="img" aria-label="Human boy gladiator">
+    <path d="M48 105 L46 139 L37 151 L59 151 L66 111Z M80 105 L87 139 L82 151 L104 151 L101 139 L96 104Z" fill="#34415f" stroke="#111a30" stroke-width="3"/>
+    <path d="M45 56 L31 70 L39 108 Q69 120 101 108 L108 70 L92 56Z" fill="#879bbd" stroke="#18233b" stroke-width="3"/>
+    <path d="M46 61 L70 77 L92 61 L86 98 L55 98Z" fill="#b5c5dd" stroke="#293a5c" stroke-width="3"/>
+    <path d="M53 76 L86 76 M53 86 L86 86" stroke="#e9f1ff" stroke-width="3"/>
+    <path d="M38 67 L23 91 L33 100 L49 78 M100 67 L115 84 L108 96 L91 78" fill="#b97753" stroke="#593b36" stroke-width="3"/>
+    <path d="M13 77 L31 72 L40 83 L37 113 L25 124 L13 113Z" fill="#a34e39" stroke="#f4c36c" stroke-width="4"/>
+    <path d="M26 80 L26 115 M16 97 L36 97" stroke="#f4c36c" stroke-width="3"/>
+    <rect x="60" y="44" width="20" height="19" rx="5" fill="#b97753"/>
+    <ellipse cx="70" cy="34" rx="24" ry="28" fill="#c98b66" stroke="#593b36" stroke-width="2"/>
+    <path d="M46 35 Q40 8 62 7 Q83 0 94 18 L92 34 L83 23 L75 19 L62 24 L50 22Z" fill="#3c2a24"/>
+    <ellipse cx="58" cy="35" rx="3" ry="4" fill="#18233b"/><ellipse cx="81" cy="35" rx="3" ry="4" fill="#18233b"/>
+    <path d="M61 48 Q70 55 80 47" fill="none" stroke="#6f352e" stroke-width="3"/>
+    <path d="M43 25 Q44 3 70 4 Q95 3 97 25 L88 29 L51 29Z" fill="#91a6c8" stroke="#253454" stroke-width="3"/>
+    <path d="M70 6 L70 27" stroke="#f7d47d" stroke-width="4"/>
+    <path d="M111 65 L129 22 M107 67 L118 71" stroke="#dce9ff" stroke-width="5" stroke-linecap="round"/>
+  </svg>`,
+  wizard: `
+  <svg class="person-art" viewBox="0 0 140 160" role="img" aria-label="Human boy wizard">
+    <path d="M48 56 L32 73 L20 133 L70 145 L120 133 L108 73 L92 56Z" fill="#5944b7" stroke="#211b56" stroke-width="3"/>
+    <path d="M58 61 L70 83 L82 61 L92 137 L48 137Z" fill="#f3c65c" stroke="#211b56" stroke-width="3"/>
+    <path d="M38 70 L21 93 L35 104 L52 81 M102 70 L117 92 L105 104 L89 81" fill="#6b5ce0" stroke="#211b56" stroke-width="3"/>
+    <circle cx="29" cy="102" r="8" fill="#c98b66"/><circle cx="111" cy="102" r="8" fill="#c98b66"/>
+    <rect x="60" y="44" width="20" height="18" rx="5" fill="#c98b66"/>
+    <ellipse cx="70" cy="34" rx="23" ry="27" fill="#d5a07a" stroke="#754c3e" stroke-width="2"/>
+    <path d="M47 30 Q43 9 63 8 Q86 2 94 24 L90 33 L81 20 L63 25 L51 22Z" fill="#4b3028"/>
+    <ellipse cx="59" cy="35" rx="3" ry="4" fill="#17203b"/><ellipse cx="81" cy="35" rx="3" ry="4" fill="#17203b"/>
+    <path d="M61 47 Q70 53 79 47" fill="none" stroke="#784038" stroke-width="3"/>
+    <path d="M43 25 L62 0 L91 25Z" fill="#5140a3" stroke="#211b56" stroke-width="3"/>
+    <path d="M61 7 L70 18 L80 8" fill="none" stroke="#f3d46f" stroke-width="3"/>
+    <ellipse cx="67" cy="25" rx="31" ry="7" fill="#7769dc" stroke="#211b56" stroke-width="3"/>
+    <path d="M117 143 L113 47" stroke="#a66c3c" stroke-width="7" stroke-linecap="round"/>
+    <path d="M113 35 L120 45 L113 55 L106 45Z" fill="#5ee7ff" stroke="#d6faff" stroke-width="3"/>
+    <circle cx="113" cy="45" r="15" fill="none" stroke="#b7f7ff" stroke-width="2"/>
+    <path d="M34 117 Q70 126 106 117" stroke="#e3b34e" stroke-width="7" fill="none"/>
+  </svg>`,
+  archer: `
+  <svg class="person-art" viewBox="0 0 140 160" role="img" aria-label="Human girl archer">
+    <path d="M52 109 L47 145 L37 152 L60 152 L68 112Z M78 110 L84 145 L78 152 L101 152 L97 143 L95 108Z" fill="#40516b" stroke="#17243b" stroke-width="3"/>
+    <path d="M48 58 L32 72 L40 109 Q70 119 100 109 L108 72 L91 58Z" fill="#268c77" stroke="#154b4a" stroke-width="3"/>
+    <path d="M54 61 L70 82 L86 61 L90 105 L50 105Z" fill="#35b69a" stroke="#154b4a" stroke-width="3"/>
+    <path d="M39 69 L24 92 L33 100 L49 79 M101 69 L116 90 L107 99 L91 79" fill="#d79b79" stroke="#754c3e" stroke-width="3"/>
+    <path d="M18 50 Q-1 82 18 115" fill="none" stroke="#c88c43" stroke-width="5"/>
+    <path d="M18 50 L18 115" stroke="#f6e4b8" stroke-width="2"/>
+    <rect x="60" y="44" width="20" height="18" rx="5" fill="#d79b79"/>
+    <ellipse cx="70" cy="34" rx="23" ry="27" fill="#e1ae89" stroke="#754c3e" stroke-width="2"/>
+    <path d="M47 34 Q37 10 61 7 Q86 2 94 24 L96 62 L84 74 L84 38 L78 20 L62 23 L51 21Z" fill="#6a3526" stroke="#48271f" stroke-width="3"/>
+    <path d="M50 31 Q42 44 50 59" fill="none" stroke="#8b4a31" stroke-width="7"/>
+    <ellipse cx="59" cy="35" rx="3" ry="4" fill="#17203b"/><ellipse cx="81" cy="35" rx="3" ry="4" fill="#17203b"/>
+    <path d="M61 47 Q70 54 79 47" fill="none" stroke="#9a5045" stroke-width="3"/>
+    <path d="M46 24 Q69 13 94 25" fill="none" stroke="#eac45f" stroke-width="5"/>
+    <circle cx="70" cy="20" r="4" fill="#f8e7a3"/>
+    <path d="M96 61 L112 45 L123 91 L108 97Z" fill="#8d572d" stroke="#492d21" stroke-width="3"/>
+    <path d="M105 53 L117 48 M108 61 L120 56 M111 69 L122 64" stroke="#f0d3a0" stroke-width="3"/>
+    <path d="M36 111 Q70 120 104 111" stroke="#edc46c" stroke-width="6" fill="none"/>
+  </svg>`
+};
+
+const heroes = {
+  gladiator:{name:"Gladiator",description:"Boy Hero · Brave Warrior"},
+  wizard:{name:"Wizard",description:"Boy Hero · Master of Magic"},
+  archer:{name:"Archer",description:"Girl Hero · Expert Archer"}
+};
+
+// ============================================
+// QUESTION BANK: 100 ITEMS
+// ============================================
+const bank = { objective:[], real:[] };
+
+function addItem(group, question, answer, distractors) {
+  answer = String(answer);
+  const options = [answer];
+
+  for (const d of distractors.map(String)) {
+    if (!options.includes(d) && options.length < 4) options.push(d);
+  }
+
+  let k = 2;
+  while (options.length < 4) {
+    const candidate = String(Number(answer) + k * 3);
+    if (!options.includes(candidate)) options.push(candidate);
+    k++;
+  }
+
+  for (let i=options.length-1; i>0; i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [options[i],options[j]]=[options[j],options[i]];
+  }
+
+  bank[group].push({
+    question, answer, options,
+    correctIndex:options.indexOf(answer)
+  });
+}
+
+for (let b=2;b<=6;b++) {
+  for (let e=2;e<=6;e++) {
+    addItem("objective",
+      `Which exponential expression represents ${Array(e).fill(b).join(" × ")}?`,
+      `${b}^${e}`, [`${b} × ${e}`,`${e}^${b}`,`${b}^${e+1}`]);
+  }
+}
+
+for (let b=2;b<=6;b++) {
+  for (let e=2;e<=6;e++) {
+    addItem("objective",`What is the value of ${b}^${e}?`,
+      b**e,[b*e,b+e,b**(e-1)]);
+  }
+}
+
+const stories=[
+  "A magic crystal doubles its energy at every stage.",
+  "A paper design doubles its number of sections at each stage.",
+  "A digital game triples its stars at every stage.",
+  "A science model multiplies its quantity by four at each stage.",
+  "A fantasy garden multiplies its flowers by five at each stage."
+];
+
+for (let b=2;b<=6;b++) {
+  for (let e=2;e<=6;e++) {
+    addItem("real",
+      `${stories[b-2]}\n\nThe quantity is multiplied by ${b}, ${e} times. Which expression represents the repeated multiplication?`,
+      `${b}^${e}`,[`${b} × ${e}`,`${e}^${b}`,`${b} + ${e}`]);
+  }
+}
+
+const situations=[
+  "A bacteria model doubles its quantity at every stage.",
+  "A hero's magic gems are represented using repeated multiplication.",
+  "A tile design uses a repeated multiplication factor of four.",
+  "A classroom craft uses a repeated multiplication factor of five.",
+  "A fantasy machine multiplies its units by six at every stage."
+];
+
+for (let b=2;b<=6;b++) {
+  for (let e=2;e<=6;e++) {
+    addItem("real",
+      `${situations[b-2]}\n\nUsing the model ${b}^${e}, what is the value after multiplying ${b} by itself ${e} times?`,
+      b**e,[b*e,b**(e-1),b**e+b]);
+  }
+}
+
+// ============================================
+// GAME VARIABLES
+// ============================================
+const $=id=>document.getElementById(id);
+const TOTAL=15;
+const MAX_MISTAKES=5;
+
+let studentName="";
+let studentSection="";
+let selectedHero="gladiator";
+let questions=[];
+let current=0;
+let score=0;
+let mistakes=0;
+let answers=[];
+let heroHP=5;
+let enemyHP=15;
+let animating=false;
+let gameEnded=false;
+
+function shuffle(array) {
+  const copy=[...array];
+  for(let i=copy.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [copy[i],copy[j]]=[copy[j],copy[i]];
+  }
+  return copy;
+}
+
+function showScreen(id) {
+  ["dashboard","quiz","results"].forEach(s=>
+    $(s).classList.toggle("hidden",s!==id));
+}
+
+function formatMath(value) {
+  const safe=String(value).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+  return safe.replace(/(\d+)\^(\d+)/g,"$1<sup>$2</sup>")
+             .replace(/\n/g,"<br>");
+}
+
+// ============================================
+// START GAME
+// ============================================
+$("studentForm").addEventListener("submit",event=>{
+  event.preventDefault();
+
+  const choice=document.querySelector('input[name="heroChoice"]:checked');
+  studentName=$("studentName").value.trim();
+  studentSection=$("studentSection").value;
+
+  if(!studentName || !studentSection || !choice) {
+    alert("Enter your name, choose your section, and select a hero.");
+    return;
+  }
+
+  selectedHero=choice.value;
+  questions=shuffle([
+    ...shuffle(bank.objective).slice(0,5),
+    ...shuffle(bank.real).slice(0,10)
+  ]);
+
+  current=0;
+  score=0;
+  mistakes=0;
+  answers=[];
+  heroHP=5;
+  enemyHP=15;
+  animating=false;
+  gameEnded=false;
+
+  $("nameLabel").textContent="Student: "+studentName;
+  $("sectionLabel").textContent=studentSection;
+  $("heroTitle").textContent=heroes[selectedHero].name.toUpperCase();
+  $("battleHeroArt").innerHTML=heroSVG[selectedHero];
+
+  showScreen("quiz");
+  updateBattle();
+  renderQuestion();
+});
+
+// ============================================
+// BATTLE STATUS
+// ============================================
+function updateBattle() {
+  $("heroHP").style.width=(heroHP/5*100)+"%";
+  $("enemyHP").style.width=(enemyHP/15*100)+"%";
+  $("heroHPText").textContent=`${heroHP} / 5`;
+  $("enemyHPText").textContent=`${enemyHP} / 15`;
+  $("mistakeCount").textContent=`${mistakes} / ${MAX_MISTAKES}`;
+  $("heroStatus").textContent=`HP: ${heroHP} / 5 · XP: ${score*10}`;
+  $("enemyStatus").textContent=`HP: ${enemyHP} / 15`;
+
+  if(heroHP===0) {
+    $("battleHeroArt").innerHTML='<div style="font-size:55px;padding:45px 0">💫</div>';
+  } else {
+    $("battleHeroArt").innerHTML=heroSVG[selectedHero];
+  }
+}
+
+// ============================================
+// FIREBALL ATTACK
+// ============================================
+function fireballAttack(direction) {
+  return new Promise(resolve=>{
+    const field=$("battlefield");
+    const attacker=direction==="right"?$("heroFighter"):$("enemyFighter");
+    const target=direction==="right"?$("enemyFighter"):$("heroFighter");
+
+    attacker.classList.remove("attacking");
+    target.classList.remove("damaged");
+    void attacker.offsetWidth;
+    attacker.classList.add("attacking");
+
+    const fire=document.createElement("div");
+    fire.className="projectile "+(direction==="right"?"right":"left");
+    fire.textContent="🔥";
+    field.appendChild(fire);
+
+    setTimeout(()=>{
+      fire.remove();
+      target.classList.remove("damaged");
+      void target.offsetWidth;
+      target.classList.add("damaged");
+
+      const boom=document.createElement("div");
+      boom.className="explosion"+(direction==="right"?"":" left-side");
+      boom.textContent="💥";
+      field.appendChild(boom);
+      setTimeout(()=>boom.remove(),650);
+    },800);
+
+    setTimeout(()=>{
+      fire.remove();
+      attacker.classList.remove("attacking");
+      target.classList.remove("damaged");
+      resolve();
+    },1050);
+  });
+}
+
+// ============================================
+// DISPLAY QUESTIONS
+// ============================================
+function renderQuestion() {
+  if(gameEnded) return;
+  const item=questions[current];
+
+  $("countLabel").textContent=`Question ${current+1} / ${TOTAL}`;
+  $("bar").style.width=(current/TOTAL*100)+"%";
+  $("category").textContent=bank.objective.includes(item)
+    ?"⚡ OBJECTIVE CHALLENGE":"🌍 REAL-LIFE CHALLENGE";
+  $("question").innerHTML=formatMath(item.question);
+  $("choices").innerHTML="";
+  $("feedback").textContent="";
+  $("next").disabled=true;
+  $("battleMessage").textContent=
+    "You have 5 wrong-answer attempts. The 5th mistake means GAME OVER.";
+
+  item.options.forEach((option,index)=>{
+    const btn=document.createElement("button");
+    btn.className="choice";
+    btn.innerHTML=String.fromCharCode(65+index)+". "+formatMath(option);
+    btn.addEventListener("click",()=>chooseAnswer(index));
+    $("choices").appendChild(btn);
+  });
+
+  $("next").textContent=current===TOTAL-1?"Finish Assessment 🏆":"Next Challenge →";
+}
+
+// ============================================
+// ANSWER CHECKING
+// Fifth incorrect answer immediately ends game.
+// ============================================
+async function chooseAnswer(index) {
+  if(answers[current]!==undefined || animating || gameEnded) return;
+  animating=true;
+
+  const item=questions[current];
+  const correct=index===item.correctIndex;
+  answers[current]=index;
+
+  [...$("choices").children].forEach(btn=>btn.disabled=true);
+  const selected=$("choices").children[index];
+
+  if(correct) {
+    score++;
+    enemyHP=Math.max(0,enemyHP-1);
+    selected.classList.add("selected-correct");
+    $("feedback").textContent="🔥 CORRECT! Your hero attacks! +10 XP";
+    $("feedback").style.color="#65e9a2";
+    $("battleMessage").textContent="🔥 Your fireball is flying toward the monster!";
+    updateBattle();
+    await fireballAttack("right");
+    $("battleMessage").textContent=enemyHP===0
+      ?"💥 The Shadow Monster has been defeated!"
+      :`🎯 Direct hit! Monster HP: ${enemyHP} / 15`;
+  } else {
+    mistakes++;
+    heroHP=Math.max(0,heroHP-1);
+    selected.classList.add("selected-wrong");
+    $("feedback").textContent=`💥 INCORRECT! Wrong attempts: ${mistakes} / ${MAX_MISTAKES}`;
+    $("feedback").style.color="#ff8790";
+    $("battleMessage").textContent="👾 The monster is counterattacking!";
+    updateBattle();
+    await fireballAttack("left");
+
+    // GAME OVER as soon as the fifth mistake is made.
+    if(mistakes>=MAX_MISTAKES) {
+      gameEnded=true;
+      animating=false;
+      $("battleMessage").textContent="💀 GAME OVER! You used all 5 attempts.";
+      $("feedback").textContent="The battle has ended. Check your results.";
+      $("feedback").style.color="#ff8790";
+      $("bar").style.width=(answers.filter(a=>a!==undefined).length/TOTAL*100)+"%";
+      renderResults(true);
+      return;
+    }
+
+    $("battleMessage").textContent=
+      `Counterattack hit! You have ${MAX_MISTAKES-mistakes} wrong attempts remaining.`;
+  }
+
+  updateBattle();
+  animating=false;
+  $("next").disabled=false;
+}
+
+// ============================================
+// NEXT QUESTION
+// ============================================
+$("next").addEventListener("click",()=>{
+  if(answers[current]===undefined || animating || gameEnded) return;
+  current++;
+
+  if(current<TOTAL) {
+    renderQuestion();
+  } else {
+    gameEnded=true;
+    renderResults(false);
+  }
+});
+
+// ============================================
+// RESULTS DASHBOARD
+// ============================================
+function renderResults(isGameOver) {
+  showScreen("results");
+
+  const hero=heroes[selectedHero];
+  const answered=answers.filter(a=>a!==undefined).length;
+  const percentage=Math.round(score/TOTAL*100);
+
+  $("gameOverBanner").classList.toggle("hidden",!isGameOver);
+  $("ending").textContent=isGameOver
+    ?"Your quest ended early."
+    :"Your quest is complete!";
+
+  $("rank").textContent=isGameOver
+    ?"GAME OVER"
+    :score===15?"S-RANK HERO"
+    :score>=12?"A-RANK HERO"
+    :score>=8?"B-RANK HERO":"ROOKIE HERO";
+
+  $("resultName").textContent=studentName;
+  $("resultSection").textContent=studentSection;
+  $("rawScore").textContent=`${score} / ${TOTAL}`;
+  $("percentage").textContent=percentage+"% of full test";
+  $("correctCount").textContent=score;
+  $("wrongCount").textContent=mistakes;
+  $("answeredCount").textContent=`${answered} / ${TOTAL}`;
+
+  $("resultHeroName").textContent=hero.name;
+  $("resultHeroDescription").textContent=hero.description;
+  $("resultHeroArt").innerHTML=heroSVG[selectedHero];
+
+  if(isGameOver) {
+    $("message").textContent=
+      `You reached ${MAX_MISTAKES} incorrect answers. The game ended after ${answered} question(s). Your raw score is ${score} out of 15. Review the questions below and try again.`;
+    $("reviewNote").textContent=
+      "The answer key for the questions reached before Game Over is shown below.";
+  } else if(score===15) {
+    $("message").textContent="Perfect score! You defeated the Shadow Monster!";
+    $("reviewNote").textContent="You answered all 15 questions. Review your answers below.";
+  } else {
+    $("message").textContent=
+      "Assessment completed! Review the answer key and keep practicing.";
+    $("reviewNote").textContent="Review your answers and the correct answers below.";
+  }
+
+  $("review").innerHTML="";
+
+  questions.forEach((item,index)=>{
+    // On Game Over, do not display unanswered questions.
+    if(answers[index]===undefined) return;
+
+    const correct=answers[index]===item.correctIndex;
+    const card=document.createElement("div");
+    card.className="review";
+
+    const heading=document.createElement("strong");
+    heading.innerHTML=`${index+1}. ${formatMath(item.question)}`;
+    card.appendChild(heading);
+
+    const your=document.createElement("p");
+    your.className=correct?"good":"bad";
+    your.innerHTML="Your answer: "+formatMath(item.options[answers[index]]);
+    card.appendChild(your);
+
+    const key=document.createElement("p");
+    key.className="good";
+    key.innerHTML="Correct answer: <strong>"+formatMath(item.answer)+"</strong>";
+    card.appendChild(key);
+
+    $("review").appendChild(card);
+  });
+}
+
+// ============================================
+// RESTART / PRINT
+// ============================================
+$("retry").addEventListener("click",()=>{
+  $("studentName").value="";
+  $("studentSection").value="";
+  document.querySelectorAll('input[name="heroChoice"]').forEach(r=>r.checked=false);
+  showScreen("dashboard");
+});
+
+$("print").addEventListener("click",()=>window.print());
+</script>
+</body>
+</html>
